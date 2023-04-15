@@ -10,15 +10,15 @@ with open('README.md') as f:
     LONG_DESCRIPTION = f.read()
 
 setup(
-    name='GeneClust',
+    name='LEGEND',
     version='1.0.0',
-    description='A cofunctional grouping-based approach for non-redundant feature gene selection in '
-                'unannotated single-cell RNA-seq',
+    description='An integrative algorithm for identifying co-expressed and cofunctional genes in '
+                'multimodal transcriptomic sequencing data',
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
     author='Tao Deng',
     author_email='taodeng@link.cuhk.edu.cn',
-    url='https://github.com/ToryDeng/scGeneClust',
+    url='https://github.com/ToryDeng/LEGEND',
     license='GPL v3',
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -44,6 +44,6 @@ setup(
         'torch>=1.13.1',
         'opencv-python>=4.6.0',
     ],
-    packages=find_packages(exclude=('tests', 'figures', 'data', 'docs', 'notebooks')),
+    packages=find_packages(exclude=('tests', 'figures', 'data', 'docs')),
     zip_safe=False,
 )
