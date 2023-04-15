@@ -3,10 +3,10 @@
 # @Author : Tory Deng
 # @File : _utils.py
 # @Software: PyCharm
+import os
 import sys
 from typing import Literal, Tuple, Optional, Union
 
-import os
 import anndata as ad
 import cv2
 import numpy as np

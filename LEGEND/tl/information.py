@@ -14,7 +14,6 @@ import numpy as np
 from loguru import logger
 from scipy.spatial.distance import squareform
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
-from sklearn.feature_selection._mutual_info import _compute_mi
 from sklearn.preprocessing._data import scale
 
 expr_mtx, clusters, seed = None, None, 0
@@ -117,8 +116,7 @@ def _compute_complementarity(gene_index_pair: Tuple[int, int]):
 
 def compute_gene_complementarity(adata: ad.AnnData, max_workers: int = os.cpu_count() - 1, random_state: int = 0):
     """
-    Build the gene-gene redundancy graph first, and generate an MST from the graph.
-    Then compute complementarity of any two genes that are connected in the MST.
+    Compute complementarity of any two genes that are connected in the MST.
     Store the pairwise gene complementarity in `adata.uns['mst_edges_complm']` as an ndarray of shape (n_edges, ).
     Store the edges of MST in `adata.uns['mst_edges']` as an ndarray of shape (n_edges, 2).
 
@@ -135,15 +133,17 @@ def compute_gene_complementarity(adata: ad.AnnData, max_workers: int = os.cpu_co
     logger.info("Computing gene complementarity...")
     global expr_mtx, clusters, seed
     expr_mtx, clusters, seed = adata.X.copy(), adata.obs['cluster'], random_state
-    #  build MST first
-    logger.debug("Building MST...")
-
-    G = ig.Graph.Weighted_Adjacency(-adata.varp['redundancy'], mode="undirected")
-    MST = G.spanning_tree(weights=G.es["weight"])
-    adata.uns['mst_edges'] = MST.get_edge_dataframe()[['source', 'target']].values
-
-    logger.debug("MST built.")
     # compute complementarity in MST
     with Pool(processes=max_workers) as pool:
-        adata.uns['mst_edges_complm'] = np.array(pool.map(_compute_complementarity, MST.get_edgelist()))
+        edge_complm = np.array(pool.map(_compute_complementarity, adata.uns['MST'].get_edgelist()))
     logger.info(f"Gene complementarity computed.")
+    return edge_complm
+
+
+def build_MST(adjacency: np.ndarray):
+    logger.debug("Building MST...")
+    G = ig.Graph.Weighted_Adjacency(adjacency, mode="undirected", attr='neg_redundancy')
+    MST = G.spanning_tree(weights=G.es["neg_redundancy"])
+    logger.debug("MST built.")
+    return MST
+

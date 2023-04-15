@@ -1,4 +1,4 @@
-# SpaGeneClust: Integrating gene clusters from spatial transcriptomics and scRNA-seq to detect spatially variable genes
+# LEGEND: An integrative algorithm for identifying co-expressed and cofunctional genes in multimodal transcriptomic sequencing data
 
 
 ## Citation

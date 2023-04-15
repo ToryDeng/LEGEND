@@ -11,13 +11,13 @@ import numpy as np
 from loguru import logger
 from scipy.sparse import issparse
 
-import SpaGeneClust.pp as pp
-import SpaGeneClust.tl as tl
+import LEGEND.pp as pp
+import LEGEND.tl as tl
 from ._utils import set_logger
 from ._validation import check_args, check_all_genes_selected
 
 
-def scGeneClust(
+def GeneClust(
         adata: ad.AnnData,
         image: np.ndarray = None,
         n_var_clusters: int = None,
@@ -75,6 +75,8 @@ def scGeneClust(
         (and intermediate results recorded in an `AnnData` object, depending on the value of `return_info`).
     max_workers : int, default=os.cpu_count() - 1
         The maximum value of workers which can be used during feature selection. Default is the number of CPUs - 1.
+    log_path: Union[os.PathLike, str], default=None
+        Path to the log file
     verbosity : Literal[0, 1, 2], default=1
         The verbosity level.
         If 0, only prints warnings and errors.
@@ -99,20 +101,19 @@ def scGeneClust(
         Low-confidence cell clusters are filtered.
         Genes relevance values are in `copied_adata.var['relevance']`. Irrelevant genes are filtered.
         Gene redundancy values are in `copied_adata.varp['redundancy']`.
-        MST edges are in `copied_adata.uns['mst_edges']` as an ndarray of shape (n_edges, 2).
-        Gene complementarity values are in `copied_adata.uns['mst_edges_complm']` as an ndarray of shape (n_edges, ).
+        MST of relevant genes is in `copied_adata.uns['MST']`.
         Representative genes are indicated by `copied_adata.var['representative']`.
     selected_genes : ndarray
         Names of selected genes.
 
     Examples
     -------
-    >>> from SpaGeneClust import SpaGeneClust, load_PBMC3k
+    >>> from LEGEND import GeneClust, load_PBMC3k
     >>>
     >>>
     >>> adata = load_PBMC3k()
-    >>> selected_genes_fast = SpaGeneClust(adata, version='fast', n_var_clusters=200)
-    >>> selected_genes_ps = SpaGeneClust(adata, version='ps', n_obs_clusters=7)
+    >>> selected_genes_fast = GeneClust(adata, version='fast', n_var_clusters=200)
+    >>> selected_genes_ps = GeneClust(adata, version='ps', n_obs_clusters=7)
     """
     # set log level and log path
     set_logger(verbosity, log_path)
@@ -142,7 +143,7 @@ def scGeneClust(
         relevant_gene_pct, max_workers, random_state
     )
     # select features from gene clusters
-    selected_genes = tl.select_from_clusters(copied_adata, version, post_hoc_filtering, random_state)
+    selected_genes = tl.select_from_clusters(copied_adata, version, modality, 20, post_hoc_filtering, random_state)
     check_all_genes_selected(copied_adata, selected_genes)
 
     if subset:
@@ -153,5 +154,92 @@ def scGeneClust(
     logger.opt(colors=True).info(f"<magenta>GeneClust-{version}</magenta> finished.")
     if return_info:
         return copied_adata, selected_genes
+    else:
+        return selected_genes
+
+
+def integrate(
+        adata_rna: ad.AnnData,
+        adata_st: ad.AnnData,
+        rna_weight: float = 0.5,
+        rel_pct: int = 20,
+        post_hoc_filtering: bool = True,
+        return_info: bool = False,
+        max_workers: int = os.cpu_count() - 1,
+        log_path: Optional[Union[os.PathLike, str]] = None,
+        verbosity: Literal[0, 1, 2] = 1,
+        random_state: int = 0
+):
+    """
+    Integrate information from multimodal data to identify co-expressed genes.
+
+    Parameters
+    ----------
+    adata_rna : AnnData
+        Stores intermediate results generated during feature selection on sc/snRNA-seq data.
+    adata_st : AnnData
+        Stores intermediate results generated during feature selection on SRT data.
+    rna_weight : float
+        Weight of sc/snRNA-seq information.
+    rel_pct : float
+        Percent of relevant genes which should be selected from each gene cluster.
+    post_hoc_filtering : bool, default=True
+        Whether to find outliers in singleton gene clusters after gene clustering.
+    return_info: bool, default=False
+        If `False`, only return names of selected genes.
+        Otherwise, return an `AnnData` object which contains intermediate results generated during co-expressed genes detection.
+    max_workers : int, default=os.cpu_count() - 1
+        The maximum value of workers which can be used during feature selection. Default is the number of CPUs - 1.
+    log_path: Union[os.PathLike, str], default=None
+        Path to the log file
+    verbosity : Literal[0, 1, 2], default=1
+        The verbosity level.
+        If 0, only prints warnings and errors.
+        If 1, prints info-level messages, warnings and errors.
+        If 2, prints debug-level messages, info-level messages, warnings and errors.
+    random_state : int, default=0
+        Change to use different initial states for the optimization.
+
+    Returns
+    -------
+    If `return_info=True`, returns names of selected genes and intermediate results.
+    Otherwise only returns an AnnData object which stores intermediate results generated during co-expressed genes detection.
+    """
+    # set log level and log path
+    set_logger(verbosity, log_path)
+
+    common_genes = np.intersect1d(adata_rna.var_names, adata_st.var_names)
+    logger.opt(colors=True).info(
+        f"Detected <yellow>{common_genes.shape[0]}</yellow> genes shared by "
+        f"<magenta>SRT</magenta> and <magenta>scRNA-seq</magenta>."
+    )
+
+    adata_rna = adata_rna[:, common_genes].copy()
+    adata_st = adata_st[:, common_genes].copy()
+
+    pseudo_adata = ad.AnnData(np.zeros((1, common_genes.shape[0])), dtype=float)
+    pseudo_adata.var_names = common_genes
+
+    comb_redundancy = rna_weight * adata_rna.varp['redundancy'] + (1 - rna_weight) * adata_st.varp['redundancy']
+    comb_relevance = rna_weight * adata_rna.var['relevance'] + (1 - rna_weight) * adata_st.var['relevance']
+    comb_MST = tl.information.build_MST(-comb_redundancy)
+    adata_st.uns['MST'], adata_rna.uns['MST'] = comb_MST, comb_MST
+    logger.opt(colors=True).info(f"Start to compute complementarity on <magenta>SRT</magenta> data...")
+    st_complm = tl.information.compute_gene_complementarity(adata_st, max_workers, random_state)
+    logger.opt(colors=True).info(f"Start to compute complementarity on <magenta>scRNA-seq</magenta> data...")
+    rna_complm = tl.information.compute_gene_complementarity(adata_rna, max_workers, random_state)
+    comb_MST.es['complm'] = rna_weight * st_complm + (1 - rna_weight) * rna_complm
+
+    pseudo_adata.uns['MST'] = comb_MST
+    pseudo_adata.var['relevance'] = comb_relevance
+    pseudo_adata.var['relevance_rna'] = adata_rna.var['relevance']
+    pseudo_adata.var['relevance_st'] = adata_st.var['relevance']
+
+    tl.cluster.generate_gene_clusters(pseudo_adata)
+    selected_genes = tl.select_from_clusters(pseudo_adata, 'ps', 'st', rel_pct, post_hoc_filtering, random_state)
+    check_all_genes_selected(pseudo_adata, selected_genes)
+
+    if return_info:
+        return pseudo_adata, selected_genes
     else:
         return selected_genes

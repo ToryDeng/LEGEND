@@ -6,7 +6,6 @@
 import contextlib
 import os
 import random
-import torch
 from functools import partial
 from multiprocessing.pool import ThreadPool
 # from SpaGCN import SpaGCN, calculate_adj_matrix, search_l, search_res
@@ -14,13 +13,14 @@ from typing import Literal
 from typing import Optional
 
 import SpaGCN as spg
-import graph_tool.all as gt
 import anndata as ad
+import graph_tool.all as gt
 import igraph as ig
 import leidenalg
 import numpy as np
 import pandas as pd
 import squidpy as sq
+import torch
 from loguru import logger
 from scipy.stats import entropy
 from sklearn.mixture import GaussianMixture
@@ -191,43 +191,6 @@ def run_SpaGCN(
         adj_2d = spg.calculate_adj_matrix(x=x_array, y=y_array, histology=False)
         refined_pred = spg.refine(sample_id=adata.obs.index.tolist(), pred=y_pred, dis=adj_2d, shape=shape)
         return np.array(refined_pred).astype(str)
-
-
-# def run_spaGCN(
-#         adata: ad.AnnData,
-#         img: np.ndarray,
-#         n_spot_cluster: int,
-#         shape: Literal['hexagon', 'square'] = 'hexagon',
-#         random_state: int = 100
-# ) -> np.ndarray:
-#     logger.opt(colors=True).debug(
-#         f"spaGCN starts running on <yellow>{adata.n_obs}</yellow> spots and <yellow>{adata.n_vars}</yellow> genes...")
-#     # prepare positional information
-#     x_array, y_array = adata.obs["array_row"].values, adata.obs["array_col"].values
-#     x_pixel, y_pixel = adata.obsm['spatial'][:, 1], adata.obsm['spatial'][:, 0]
-#
-#     with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-#         if img is None:
-#             adj = spg.calculate_adj_matrix(x=x_pixel, y=y_pixel, histology=False)
-#         else:
-#             adj = spg.calculate_adj_matrix(
-#                 x=x_pixel, y=y_pixel, x_pixel=x_pixel, y_pixel=y_pixel, image=img, beta=49, alpha=1, histology=True
-#             )
-#         l = spg.search_l(0.5, adj, start=0.01, end=1000, tol=0.01, max_run=100)
-#         res = spg.search_res(adata, adj, l, n_spot_cluster, start=0.7, step=0.1, tol=5e-3, lr=0.05, max_epochs=20,
-#                              r_seed=random_state, t_seed=random_state, n_seed=random_state)
-#         clf = spg.SpaGCN()
-#         clf.set_l(l)
-#         random.seed(random_state)
-#         torch.manual_seed(random_state)
-#         np.random.seed(random_state)
-#         clf.train(adata, adj, init_spa=True, init="louvain", res=res, tol=5e-4, lr=0.05, max_epochs=200)
-#         y_pred, prob = clf.predict()
-#         cluster_labels = spg.spatial_domains_refinement_ez_mode(
-#             sample_id=adata.obs.index, pred=y_pred, x_array=x_array, y_array=y_array, shape=shape
-#         )
-#     logger.opt(colors=True).debug("<magenta>spaGCN</magenta> completed.")
-#     return np.array(cluster_labels)
 
 
 def find_high_confidence_spots(

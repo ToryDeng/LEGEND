@@ -16,7 +16,7 @@ from sklearn.metrics.pairwise import paired_distances
 from sklearn.preprocessing import minmax_scale
 
 from .confidence import find_high_confidence_cells, find_high_confidence_spots
-from .information import find_relevant_genes, compute_gene_redundancy, compute_gene_complementarity
+from .information import find_relevant_genes, compute_gene_redundancy, build_MST, compute_gene_complementarity
 
 
 def cluster_genes(
@@ -79,7 +79,8 @@ def cluster_genes(
             find_high_confidence_spots(adata, img, n_obs_clusters, shape, alpha=alpha, random_state=random_state)
         find_relevant_genes(adata, relevant_gene_pct, max_workers, random_state)
         compute_gene_redundancy(adata, max_workers, random_state)
-        compute_gene_complementarity(adata, max_workers, random_state)
+        adata.uns['MST'] = build_MST(-adata.varp['redundancy'])
+        adata.uns['MST'].es['complm'] = compute_gene_complementarity(adata, max_workers, random_state)
         generate_gene_clusters(adata)
     logger.info("Gene clustering done!")
 
@@ -119,16 +120,18 @@ def generate_gene_clusters(adata: ad.AnnData):
         The annotated data matrix of shape `n_obs` × `n_vars`.
         Rows correspond to cells and columns to genes.
     """
-    g1_idx, g2_idx = adata.uns['mst_edges'][:, 0], adata.uns['mst_edges'][:, 1]
+    mst_edges = adata.uns['MST'].get_edge_dataframe()[['source', 'target']].values
+    g1_idx, g2_idx = mst_edges[:, 0], mst_edges[:, 1]
     per_gene_relevance = adata.var['relevance'].values
-    edge_min_relevance = np.minimum(per_gene_relevance[g1_idx], per_gene_relevance[g2_idx])
-    edge_redundancy = adata.varp['redundancy'][g1_idx, g2_idx]
-    edge_scales = np.maximum(edge_min_relevance, adata.uns['mst_edges_complm']) / edge_redundancy
+    adata.uns['MST'].es['min_relevance'] = np.minimum(per_gene_relevance[g1_idx], per_gene_relevance[g2_idx])
+    edge_redundancy = -np.array(adata.uns['MST'].es['neg_redundancy'])
+    edge_scales = np.maximum(adata.uns['MST'].es['min_relevance'], adata.uns['MST'].es['complm']) / edge_redundancy
+    adata.uns['MST'].es['scale'] = edge_scales
 
-    MST = np.hstack((adata.uns['mst_edges'], edge_scales.reshape(-1, 1)))
+    MST = np.hstack((mst_edges, edge_scales.reshape(-1, 1)))
     MST = MST[np.argsort(MST.T[2]), :]
     single_linkage_tree = label(MST)
-    condensed_tree = condense_tree(single_linkage_tree, 3)
+    condensed_tree = condense_tree(single_linkage_tree, 5)
     stability_dict = compute_stability(condensed_tree)
-    labels, probabilities, stabilities = get_clusters(condensed_tree, stability_dict, "eom", False, False, 0., 0)
+    labels, probabilities, stabilities = get_clusters(condensed_tree, stability_dict, "eom", False, False, 1., 0)
     adata.var['outlier_score'], adata.var['cluster'] = outlier_scores(condensed_tree), labels
