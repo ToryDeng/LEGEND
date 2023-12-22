@@ -4,7 +4,7 @@
 # @File : _model.py
 # @Software: PyCharm
 import os
-from typing import Literal, Optional, Union, Tuple
+from typing import Literal, Optional, Tuple, Union
 
 import anndata as ad
 import numpy as np
@@ -13,28 +13,29 @@ from scipy.sparse import issparse
 
 import LEGEND.pp as pp
 import LEGEND.tl as tl
+
 from ._utils import set_logger
-from ._validation import check_args, check_all_genes_selected
+from ._validation import check_all_genes_selected, check_args
 
 
 def GeneClust(
-        adata: ad.AnnData,
-        image: np.ndarray = None,
-        n_var_clusters: int = None,
-        n_obs_clusters: int = None,
-        n_components: int = 10,
-        relevant_gene_pct: int = 20,
-        post_hoc_filtering: bool = True,
-        version: Literal['fast', 'ps'] = 'fast',
-        modality: Literal['sc', 'st'] = 'sc',
-        shape: Literal['hexagon', 'square'] = 'hexagon',
-        alpha: float = 0.3,
-        return_info: bool = False,
-        subset: bool = False,
-        max_workers: int = os.cpu_count() - 1,
-        log_path: Optional[Union[os.PathLike, str]] = None,
-        verbosity: Literal[0, 1, 2] = 1,
-        random_state: int = 0
+    adata: ad.AnnData,
+    image: np.ndarray = None,
+    n_var_clusters: int = None,
+    n_obs_clusters: int = None,
+    n_components: int = 10,
+    relevant_gene_pct: int = 20,
+    post_hoc_filtering: bool = True,
+    version: Literal["fast", "ps"] = "fast",
+    modality: Literal["sc", "st"] = "sc",
+    shape: Literal["hexagon", "square"] = "hexagon",
+    alpha: float = 0.3,
+    return_info: bool = False,
+    subset: bool = False,
+    max_workers: int = os.cpu_count() - 1,
+    log_path: Optional[Union[os.PathLike, str]] = None,
+    verbosity: Literal[0, 1, 2] = 1,
+    random_state: int = 0,
 ) -> Optional[Union[Tuple[ad.AnnData, np.ndarray], np.ndarray]]:
     """
     This function is the common interface for *GeneClust-fast* and *GeneClust-ps*.
@@ -51,7 +52,7 @@ def GeneClust(
     n_var_clusters : int
         The number of clusters in gene clustering. Only valid in GeneClust-fast.
     n_obs_clusters : int
-        The number of clusters in cell clustering used to find high-confidence cells. Only valid in GeneClust-ps.
+        The number of clusters in cell/spots clustering used to find high-confidence cells/spots. Only valid in GeneClust-ps.
     n_components : int, default=10
         The number of principal components used along with the first component. Only valid in GeneClust-ps.
     relevant_gene_pct: int, default=20
@@ -102,6 +103,7 @@ def GeneClust(
         Genes relevance values are in `copied_adata.var['relevance']`. Irrelevant genes are filtered.
         Gene redundancy values are in `copied_adata.varp['redundancy']`.
         MST of relevant genes is in `copied_adata.uns['MST']`.
+        Gene outlier scores are in `copied_adata.var['outlier_score']`.
         Representative genes are indicated by `copied_adata.var['representative']`.
     selected_genes : ndarray
         Names of selected genes.
@@ -120,8 +122,21 @@ def GeneClust(
 
     # check arguments
     do_norm = check_args(
-        adata, image, version, n_var_clusters, n_obs_clusters, n_components, relevant_gene_pct, post_hoc_filtering,
-        modality, shape, alpha, return_info, subset, max_workers, random_state
+        adata,
+        image,
+        version,
+        n_var_clusters,
+        n_obs_clusters,
+        n_components,
+        relevant_gene_pct,
+        post_hoc_filtering,
+        modality,
+        shape,
+        alpha,
+        return_info,
+        subset,
+        max_workers,
+        random_state,
     )
 
     # feature selection starts
@@ -139,16 +154,30 @@ def GeneClust(
     pp.reduce_dim(copied_adata, version, random_state)
     # gene clustering
     tl.cluster_genes(
-        copied_adata, image, version, modality, shape, alpha, n_var_clusters, n_obs_clusters, n_components,
-        relevant_gene_pct, max_workers, random_state
+        copied_adata,
+        image,
+        version,
+        modality,
+        shape,
+        alpha,
+        n_var_clusters,
+        n_obs_clusters,
+        n_components,
+        relevant_gene_pct,
+        max_workers,
+        random_state,
     )
     # select features from gene clusters
-    selected_genes = tl.select_from_clusters(copied_adata, version, modality, 20, post_hoc_filtering, random_state)
+    selected_genes = tl.select_from_clusters(
+        copied_adata, version, modality, 20, post_hoc_filtering, random_state
+    )
     check_all_genes_selected(copied_adata, selected_genes)
 
     if subset:
         adata._inplace_subset_var(selected_genes)
-        logger.opt(colors=True).info(f"<magenta>GeneClust-{version}</magenta> finished.")
+        logger.opt(colors=True).info(
+            f"<magenta>GeneClust-{version}</magenta> finished."
+        )
         return None
 
     logger.opt(colors=True).info(f"<magenta>GeneClust-{version}</magenta> finished.")
@@ -159,16 +188,16 @@ def GeneClust(
 
 
 def integrate(
-        adata_rna: ad.AnnData,
-        adata_st: ad.AnnData,
-        rna_weight: float = 0.5,
-        rel_pct: int = 20,
-        post_hoc_filtering: bool = True,
-        return_info: bool = False,
-        max_workers: int = os.cpu_count() - 1,
-        log_path: Optional[Union[os.PathLike, str]] = None,
-        verbosity: Literal[0, 1, 2] = 1,
-        random_state: int = 0
+    adata_rna: ad.AnnData,
+    adata_st: ad.AnnData,
+    rna_weight: float = 0.5,
+    rel_pct: int = 20,
+    post_hoc_filtering: bool = True,
+    return_info: bool = False,
+    max_workers: int = os.cpu_count() - 1,
+    log_path: Optional[Union[os.PathLike, str]] = None,
+    verbosity: Literal[0, 1, 2] = 1,
+    random_state: int = 0,
 ):
     """
     Integrate information from multimodal data to identify co-expressed genes.
@@ -220,23 +249,39 @@ def integrate(
     pseudo_adata = ad.AnnData(np.zeros((1, common_genes.shape[0])), dtype=float)
     pseudo_adata.var_names = common_genes
 
-    comb_redundancy = rna_weight * adata_rna.varp['redundancy'] + (1 - rna_weight) * adata_st.varp['redundancy']
-    comb_relevance = rna_weight * adata_rna.var['relevance'] + (1 - rna_weight) * adata_st.var['relevance']
+    comb_redundancy = (
+        rna_weight * adata_rna.varp["redundancy"]
+        + (1 - rna_weight) * adata_st.varp["redundancy"]
+    )
+    comb_relevance = (
+        rna_weight * adata_rna.var["relevance"]
+        + (1 - rna_weight) * adata_st.var["relevance"]
+    )
     comb_MST = tl.information.build_MST(-comb_redundancy)
-    adata_st.uns['MST'], adata_rna.uns['MST'] = comb_MST, comb_MST
-    logger.opt(colors=True).info(f"Start to compute complementarity on <magenta>SRT</magenta> data...")
-    st_complm = tl.information.compute_gene_complementarity(adata_st, max_workers, random_state)
-    logger.opt(colors=True).info(f"Start to compute complementarity on <magenta>scRNA-seq</magenta> data...")
-    rna_complm = tl.information.compute_gene_complementarity(adata_rna, max_workers, random_state)
-    comb_MST.es['complm'] = rna_weight * st_complm + (1 - rna_weight) * rna_complm
+    adata_st.uns["MST"], adata_rna.uns["MST"] = comb_MST, comb_MST
+    logger.opt(colors=True).info(
+        f"Start to compute complementarity on <magenta>SRT</magenta> data..."
+    )
+    st_complm = tl.information.compute_gene_complementarity(
+        adata_st, max_workers, random_state
+    )
+    logger.opt(colors=True).info(
+        f"Start to compute complementarity on <magenta>scRNA-seq</magenta> data..."
+    )
+    rna_complm = tl.information.compute_gene_complementarity(
+        adata_rna, max_workers, random_state
+    )
+    comb_MST.es["complm"] = rna_weight * st_complm + (1 - rna_weight) * rna_complm
 
-    pseudo_adata.uns['MST'] = comb_MST
-    pseudo_adata.var['relevance'] = comb_relevance
-    pseudo_adata.var['relevance_rna'] = adata_rna.var['relevance']
-    pseudo_adata.var['relevance_st'] = adata_st.var['relevance']
+    pseudo_adata.uns["MST"] = comb_MST
+    pseudo_adata.var["relevance"] = comb_relevance
+    pseudo_adata.var["relevance_rna"] = adata_rna.var["relevance"]
+    pseudo_adata.var["relevance_st"] = adata_st.var["relevance"]
 
     tl.cluster.generate_gene_clusters(pseudo_adata)
-    selected_genes = tl.select_from_clusters(pseudo_adata, 'ps', 'st', rel_pct, post_hoc_filtering, random_state)
+    selected_genes = tl.select_from_clusters(
+        pseudo_adata, "ps", "st", rel_pct, post_hoc_filtering, random_state
+    )
     check_all_genes_selected(pseudo_adata, selected_genes)
 
     if return_info:

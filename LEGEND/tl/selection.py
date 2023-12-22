@@ -84,6 +84,10 @@ def select_from_clusters(
                 adata.var.loc[is_low_density_gene, 'representative'] = is_outlier
                 logger.opt(colors=True).debug(
                     f"Found <yellow>{is_outlier.sum()}</yellow> outliers in low-density gene cluster(s).")
+        else:
+            grouped = adata.var.groupby(by='cluster')
+            largest_genes = select_largest_from_groups(grouped, modality, rel_pct)
+            adata.var['representative'] = adata.var_names.isin(largest_genes)
         selected_features = adata.var_names[adata.var['representative']].to_numpy()
     return selected_features
 
@@ -93,7 +97,7 @@ def select_largest_from_groups(grouped: pd.core.groupby.DataFrameGroupBy, modali
     modality_rel_keys = np.array(['relevance_rna', 'relevance_st'])
     have_modality_rel = np.isin(modality_rel_keys, grouped.obj.columns)
     if have_modality_rel.sum() == 2:  # LEGEND
-        print(grouped['relevance'].apply(lambda x: np.ceil(len(x) * rel_pct / 100).astype(int)).sort_values(ascending=False))
+        # print(grouped['relevance'].apply(lambda x: np.ceil(len(x) * rel_pct / 100).astype(int)).sort_values(ascending=False))
         largest_genes = grouped['relevance'].apply(
             lambda x: x.nlargest(max(np.ceil(len(x) * rel_pct / 100).astype(int), 1), 'all')
         ).index.get_level_values(1)

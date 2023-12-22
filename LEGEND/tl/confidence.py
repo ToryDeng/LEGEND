@@ -8,17 +8,17 @@ import os
 import random
 from functools import partial
 from multiprocessing.pool import ThreadPool
-# from SpaGCN import SpaGCN, calculate_adj_matrix, search_l, search_res
-from typing import Literal
-from typing import Optional
 
-import SpaGCN as spg
+# from SpaGCN import SpaGCN, calculate_adj_matrix, search_l, search_res
+from typing import Literal, Optional
+
 import anndata as ad
 import graph_tool.all as gt
 import igraph as ig
 import leidenalg
 import numpy as np
 import pandas as pd
+import SpaGCN as spg
 import squidpy as sq
 import torch
 from loguru import logger
@@ -29,11 +29,11 @@ X_pca = None
 
 
 def find_high_confidence_cells(
-        adata: ad.AnnData,
-        n_cell_clusters: int,
-        n_components: int = 10,
-        max_workers: int = os.cpu_count() - 1,
-        random_state: int = 0
+    adata: ad.AnnData,
+    n_cell_clusters: int,
+    n_components: int = 10,
+    max_workers: int = os.cpu_count() - 1,
+    random_state: int = 0,
 ):
     """
     Find cells which belong to certain cluster with high confidence.
@@ -55,32 +55,45 @@ def find_high_confidence_cells(
     logger.info(f"Finding high-confidence cells...")
     # compute the frequency matrix
     global X_pca
-    X_pca = adata.obsm['X_pca']
-    partial_compute = partial(_compute_cell_co_membership, n_clusters=n_cell_clusters, random_state=random_state)
+    X_pca = adata.obsm["X_pca"]
+    partial_compute = partial(
+        _compute_cell_co_membership,
+        n_clusters=n_cell_clusters,
+        random_state=random_state,
+    )
     with ThreadPool(processes=max_workers) as pool:
         results = pool.map(partial_compute, range(2, 2 + n_components))
-    frequency_matrix = np.sum(results, axis=0)  # nonzero values only exist in the upper right part
+    frequency_matrix = np.sum(
+        results, axis=0
+    )  # nonzero values only exist in the upper right part
     # find threshold
     for freq_th in range(8, 0, -1):
         cut_matrix = np.where(frequency_matrix < freq_th, 0, frequency_matrix)
         cluster_labels = leiden(cut_matrix, seed=random_state)
         cluster_counts = pd.Series(cluster_labels).value_counts(ascending=False)
         if (cluster_counts < 10).any():  # has_small_cluster
-            cut_k = min(n_cell_clusters, np.argwhere((cluster_counts < 10).values).squeeze(axis=1)[0])
+            cut_k = min(
+                n_cell_clusters,
+                np.argwhere((cluster_counts < 10).values).squeeze(axis=1)[0],
+            )
         else:
             cut_k = cluster_counts.shape[0]
         is_confident = np.isin(cluster_labels, cluster_counts.index[:cut_k])
         if is_confident.sum() / adata.n_obs > 0.1:
-            logger.opt(colors=True).debug(f"Final frequency cutoff: <yellow>{freq_th}</yellow>")
+            logger.opt(colors=True).debug(
+                f"Final frequency cutoff: <yellow>{freq_th}</yellow>"
+            )
             break
     adata._inplace_subset_obs(is_confident)
-    adata.obs['cluster'] = cluster_labels.astype(str)[is_confident]
+    adata.obs["cluster"] = cluster_labels.astype(str)[is_confident]
     logger.opt(colors=True).info(
         f"Found <yellow>{adata.n_obs}</yellow> (<yellow>{np.round(adata.n_obs / is_confident.shape[0] * 100)}%</yellow>) high-confidence cells."
     )
 
 
-def _compute_cell_co_membership(idx: np.ndarray, n_clusters: int, random_state: int, p: float = 0.95) -> np.ndarray:
+def _compute_cell_co_membership(
+    idx: np.ndarray, n_clusters: int, random_state: int, p: float = 0.95
+) -> np.ndarray:
     """
     Perform GMM clustering on certain PCs.
 
@@ -106,13 +119,17 @@ def _compute_cell_co_membership(idx: np.ndarray, n_clusters: int, random_state: 
     if X.ndim == 1:
         X = X.reshape(-1, 1)
     # GMM clustering
-    gmm = GaussianMixture(n_components=n_clusters, init_params='k-means++', random_state=random_state)
+    gmm = GaussianMixture(
+        n_components=n_clusters, init_params="k-means++", random_state=random_state
+    )
     gmm.fit(X)
     cell_labels, cell_probas = gmm.predict(X), gmm.predict_proba(X).max(1)
     co_membership = np.zeros((X.shape[0], X.shape[0]))  # rows correspond to cells
     for i in range(X.shape[0] - 1):
         if cell_probas[i] >= p:
-            co_membership[i, i + 1:] = np.logical_and(cell_probas[i + 1:] > p, cell_labels[i + 1:] == cell_labels[i])
+            co_membership[i, i + 1 :] = np.logical_and(
+                cell_probas[i + 1 :] > p, cell_labels[i + 1 :] == cell_labels[i]
+            )
     return co_membership
 
 
@@ -134,15 +151,17 @@ def leiden(adjacency: np.ndarray, resolution: float = 1.0, seed: Optional[int] =
     cluster_labels
         Cluster label of each cell.
     """
-    G = ig.Graph.Weighted_Adjacency(adjacency, mode="upper")  # igraph checks adjacency matrix internally
+    G = ig.Graph.Weighted_Adjacency(
+        adjacency, mode="upper"
+    )  # igraph checks adjacency matrix internally
     logger.debug("Leiden clustering starts...")
     partition = leidenalg.find_partition(
         G,
         partition_type=leidenalg.RBConfigurationVertexPartition,
-        weights=G.es['weight'],
+        weights=G.es["weight"],
         n_iterations=-1,
         resolution_parameter=resolution,
-        seed=seed
+        seed=seed,
     )
     cluster_labels = np.array(partition.membership)
     logger.debug("Leiden clustering finished!")
@@ -150,17 +169,18 @@ def leiden(adjacency: np.ndarray, resolution: float = 1.0, seed: Optional[int] =
 
 
 def run_SpaGCN(
-        adata: ad.AnnData,
-        img: np.ndarray,
-        n_spot_cluster: int,
-        shape: Literal['hexagon', 'square'] = 'hexagon',
-        random_state: int = 100
+    adata: ad.AnnData,
+    img: np.ndarray,
+    n_spot_cluster: int,
+    shape: Literal["hexagon", "square"] = "hexagon",
+    random_state: int = 100,
 ) -> np.ndarray:
     logger.opt(colors=True).debug(
-        f"SpaGCN starts running on <yellow>{adata.n_obs}</yellow> spots and <yellow>{adata.n_vars}</yellow> genes...")
+        f"SpaGCN starts running on <yellow>{adata.n_obs}</yellow> spots and <yellow>{adata.n_vars}</yellow> genes..."
+    )
     # Prepare positional information
     x_array, y_array = adata.obs["array_row"].values, adata.obs["array_col"].values
-    x_pixel, y_pixel = adata.obsm['spatial'][:, 1], adata.obsm['spatial'][:, 0]
+    x_pixel, y_pixel = adata.obsm["spatial"][:, 1], adata.obsm["spatial"][:, 0]
 
     with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
         # Calculate adjacent matrix
@@ -168,14 +188,31 @@ def run_SpaGCN(
             adj = spg.calculate_adj_matrix(x=x_pixel, y=y_pixel, histology=False)
         else:
             adj = spg.calculate_adj_matrix(
-                x=x_pixel, y=y_pixel, x_pixel=x_pixel, y_pixel=y_pixel, image=img, beta=49, alpha=1, histology=True
+                x=x_pixel,
+                y=y_pixel,
+                x_pixel=x_pixel,
+                y_pixel=y_pixel,
+                image=img,
+                beta=49,
+                alpha=1,
+                histology=True,
             )
 
         # Set hyper-parameters
         l = spg.find_l(p=0.5, adj=adj, start=100, end=500, sep=1, tol=0.01)
         res = spg.search_res(
-            adata, adj, l, n_spot_cluster, start=0.7, step=0.1, tol=5e-3, lr=0.05, max_epochs=20,
-            r_seed=random_state, t_seed=random_state, n_seed=random_state
+            adata,
+            adj,
+            l,
+            n_spot_cluster,
+            start=0.7,
+            step=0.1,
+            tol=5e-3,
+            lr=0.05,
+            max_epochs=20,
+            r_seed=random_state,
+            t_seed=random_state,
+            n_seed=random_state,
         )
         # Run SpaGCN
         clf = spg.SpaGCN()
@@ -185,71 +222,99 @@ def run_SpaGCN(
         torch.manual_seed(random_state)
         np.random.seed(random_state)
         # Run
-        clf.train(adata, adj, init_spa=True, init="louvain", res=res, tol=5e-3, lr=0.05, max_epochs=200)
+        clf.train(
+            adata,
+            adj,
+            init_spa=True,
+            init="louvain",
+            res=res,
+            tol=5e-3,
+            lr=0.05,
+            max_epochs=200,
+        )
         y_pred, prob = clf.predict()
         # Do cluster refinement
         adj_2d = spg.calculate_adj_matrix(x=x_array, y=y_array, histology=False)
-        refined_pred = spg.refine(sample_id=adata.obs.index.tolist(), pred=y_pred, dis=adj_2d, shape=shape)
+        refined_pred = spg.refine(
+            sample_id=adata.obs.index.tolist(), pred=y_pred, dis=adj_2d, shape=shape
+        )
         return np.array(refined_pred).astype(str)
 
 
 def find_high_confidence_spots(
-        adata: ad.AnnData,
-        img: np.ndarray,
-        n_spot_cluster: int,
-        shape: Literal['hexagon', 'square'] = 'hexagon',
-        n_neighs: int = 6,
-        alpha: float = 0.3,
-        random_state: int = 0
+    adata: ad.AnnData,
+    img: np.ndarray,
+    n_spot_cluster: int,
+    shape: Literal["hexagon", "square"] = "hexagon",
+    n_neighs: int = 6,
+    alpha: float = 0.3,
+    random_state: int = 0,
 ):
     logger.info(f"Finding high-confidence spots...")
     adata.obs["cluster"] = run_SpaGCN(adata, img, n_spot_cluster, shape, 100)
     sq.gr.spatial_neighbors(adata, coord_type="grid", n_neighs=n_neighs)
 
     G = gt.Graph(directed=False)
-    G.add_edge_list(np.transpose(np.tril(adata.obsp['spatial_connectivities'].toarray()).nonzero()))
-    G.vp['domain_pred'] = G.new_vp("int", vals=adata.obs['cluster'].values)
-    G.vp['is_same_cluster'] = G.new_vp("bool", val=True)
-    G.vp['neigh_ent'] = G.new_vp("float", val=0.)
+    G.add_edge_list(
+        np.transpose(np.tril(adata.obsp["spatial_connectivities"].toarray()).nonzero())
+    )
+    G.vp["domain_pred"] = G.new_vp("int", vals=adata.obs["cluster"].values)
+    G.vp["is_same_cluster"] = G.new_vp("bool", val=True)
+    G.vp["neigh_ent"] = G.new_vp("float", val=0.0)
 
     # find boundary of each spatial cluster
     for spot in G.vertices():
-        neigh_clusters = G.get_all_neighbors(spot, vprops=[G.vp['domain_pred']])[:, 1]  # clusters of neighbors
+        neigh_clusters = G.get_all_neighbors(spot, vprops=[G.vp["domain_pred"]])[
+            :, 1
+        ]  # clusters of neighbors
 
         if neigh_clusters.shape[0] == 0:  # the spot is isolated
-            G.vp['is_same_cluster'][spot] = False
-            G.vp['neigh_ent'][spot] = np.inf
+            G.vp["is_same_cluster"][spot] = False
+            G.vp["neigh_ent"][spot] = np.inf
             continue
 
         unique_clusters, counts = np.unique(neigh_clusters, return_counts=True)
-        G.vp['neigh_ent'][spot] = entropy(counts)
-        if G.vp['domain_pred'][spot] != unique_clusters[np.argmax(counts)]:
-            G.vp['is_same_cluster'][spot] = False  # spot cluster is not main cluster in neighbors
+        G.vp["neigh_ent"][spot] = entropy(counts)
+        if G.vp["domain_pred"][spot] != unique_clusters[np.argmax(counts)]:
+            G.vp["is_same_cluster"][
+                spot
+            ] = False  # spot cluster is not main cluster in neighbors
     # high entropy means the neighbors are mixed; not same cluster means the spot may expose to other clusters
-    high_neigh_ent = G.vp['neigh_ent'].a > np.median(G.vp['neigh_ent'].a[G.vp['neigh_ent'].a > 0])
-    is_border = np.logical_or(high_neigh_ent, ~G.vp['is_same_cluster'].a.astype(bool))
+    high_neigh_ent = G.vp["neigh_ent"].a > np.median(
+        G.vp["neigh_ent"].a[G.vp["neigh_ent"].a > 0]
+    )
+    is_border = np.logical_or(high_neigh_ent, ~G.vp["is_same_cluster"].a.astype(bool))
 
     # find central area in each component
     is_centers = np.full(shape=(adata.n_obs,), fill_value=False, dtype=bool)
-    adata.obs['highly_confident'] = False
-    for domain in np.unique(G.vp['domain_pred'].a):
-        sub_G = gt.GraphView(G, vfilt=G.vp['domain_pred'].a == domain)
+    # adata.obs['highly_confident'] = False
+    for domain in np.unique(G.vp["domain_pred"].a):
+        sub_G = gt.GraphView(G, vfilt=G.vp["domain_pred"].a == domain)
         comp, hist = gt.label_components(sub_G)
-        sub_G.vp['componet'] = comp
+        sub_G.vp["componet"] = comp
 
-        for cmpnt in np.unique(sub_G.vp['componet'].a[sub_G.get_vertices()]):
-            component = gt.GraphView(sub_G, vfilt=sub_G.vp['componet'].a == cmpnt)
+        for cmpnt in np.unique(sub_G.vp["componet"].a[sub_G.get_vertices()]):
+            component = gt.GraphView(sub_G, vfilt=sub_G.vp["componet"].a == cmpnt)
             if component.num_vertices() < n_neighs:  # skip too small components
                 continue
-            shortest_dis_mtx = np.zeros((component.num_vertices(), component.num_vertices()))
+            shortest_dis_mtx = np.zeros(
+                (component.num_vertices(), component.num_vertices())
+            )
             for i, vertex in enumerate(component.vertices()):
                 shortest_dis_mtx[i, :] = gt.shortest_distance(
-                    component, source=vertex, target=component.get_vertices(), dense=True
+                    component,
+                    source=vertex,
+                    target=component.get_vertices(),
+                    dense=True,
                 )
             eccentricities = shortest_dis_mtx.max(1)
             radius = eccentricities.min()
-            centers_dis = shortest_dis_mtx[np.where(eccentricities == radius)]  # distances between centers and other spots
-            center_spots_idx = component.get_vertices()[np.unique((centers_dis < alpha * radius).nonzero()[1])]
+            centers_dis = shortest_dis_mtx[
+                np.where(eccentricities == radius)
+            ]  # distances between centers and other spots
+            center_spots_idx = component.get_vertices()[
+                np.unique((centers_dis < alpha * radius).nonzero()[1])
+            ]
             is_centers[center_spots_idx] = True
     # filter boundary spots from highly confident spots
     is_confident = np.logical_and(is_centers, ~is_border)
