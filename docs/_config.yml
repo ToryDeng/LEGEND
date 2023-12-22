@@ -1,5 +1,5 @@
 title: LEGEND
-logo: img/logo.png
+logo: assets/img/logo.png
 description: An integrative algorithm for identifying co-expressed and cofunctional genes in multi-omics.
 show_downloads: false
 google_analytics:

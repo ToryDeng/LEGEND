@@ -20,7 +20,7 @@ toc: true
 Exploring co-expressed genes is essential for revealing biologically co-functional genes. However, existing methods for this purpose rely solely on sc/snRNA-seq or spatially-resolved transcriptomic (SRT) data, leading to weaker co-functionality among identified genes. We present `LEGEND` (mu**L**timodal co-**E**xpressed **GE**nes fin**D**er), a novel method that performs integrated gene clustering on sc/snRNA-seq and SRT data for identifying genes co-expressed at both the cell type and tissue domain levels.
 
 
-<img src="img/workflow.png" width="100%">
+<img src="assets/img/workflow.png" width="100%">
 
 
 The above figure illustrates the workflow of `LEGEND`. Under the framework of information theory, `LEGEND` estimates gene relevance, redundancy and complementarity in both SRT and sc/snRNA-seq datasets in a pseudo-semi-supervised manner. This information is used to construct a gene-gene redundancy graph, on which hierarchical gene clustering is performed using relative redundancy index (RRI) between neighboring gene nodes. The resulting clusters contain genes that are co-expressed at both tissue domain and cell type levels, suggesting a higher likelihood of biological co-functionality.
@@ -299,6 +299,6 @@ Both genes belong to cluster 48. We can now proceed to plot their spatial expres
 sq.pl.spatial_scatter(adata_st, layer='STAGATE_ReX', color=["Caly", "Zcchc18"], figsize=(5, 5))
 ```
 
-<img src="img/co-expression.png" width="100%">
+<img src="assets/img/co-expression.png" width="100%">
 
 Areas with high expression of one gene correlate with high expression of the other, and similarly for low expression areas. This illustrates the effectiveness of `LEGEND` in identifying biologically relevant gene clusters.
