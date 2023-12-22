@@ -45,7 +45,7 @@ info_st, _ = lg.GeneClust(adata_st, return_info=True)
 
 integration_info, integrated_genes = lg.integrate(info_rna, info_st, return_info=True)
 ```
-For more details about how to call the functions, please refer to the [document](https://github.com/ToryDeng/LEGEND/blob/main/LEGEND/_model.py).
+For more details about how to call the functions, please refer to the [**Tutorial**](https://torydeng.github.io/LEGEND/).
 
 ## Tested environment
 
