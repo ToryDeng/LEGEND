@@ -86,6 +86,8 @@ import LEGEND as lg
 import scanpy as sc
 import squidpy as sq
 import STAGATE_pyG
+
+from sklearn.metrics import adjusted_rand_score as ari
 ```
 
 In this tutorial, we utilize [STAGATE](https://doi.org/10.1038/s41467-022-29439-6) to denoise gene expressions from the SRT dataset. `STAGATE` is available in two versions: one based on TensorFlow, and another using the [PyG](https://pyg.org/) library. We will be using the PyG version, `STAGATE_pyG`. `STAGATE_pyG` is not included in `LEGEND`'s dependencies, so make sure to install it separately by the instructions in its [documentation](https://stagate.readthedocs.io/en/latest/Installation_pyG.html).
