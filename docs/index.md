@@ -29,7 +29,7 @@ The above figure illustrates the workflow of `LEGEND`. Under the framework of in
 
 ### Install Python and graph-tool
 
-We recommend you installing Python and the dependencies of `LEGEND` using [Conda](https://docs.conda.io/en/latest/), as one of the dependencies, [`graph-tool`](https://graph-tool.skewed.de/static/doc/index.html), is only available through this platform:
+We recommend you installing Python and the dependencies of `LEGEND` using [Conda](https://docs.conda.io/en/latest/), as one of the dependencies, [graph-tool](https://graph-tool.skewed.de/static/doc/index.html), is only available through this platform:
 
 ```shell
 # Create a conda env named "legend", and install Python 3.9 and the graph-tool package
@@ -331,7 +331,7 @@ Areas with high expression of one gene correlate with high expression of the oth
 
 ### Spatial Domain Detection
 
-After feature selection with `LEGEND`, we can proceed to downstream analyses such as domain detection. Domain detection is crucial for understanding the spatial organization of gene expression within tissue. To demonstrate the power of `LEGEND` in facilitating domain detection, we apply `SpaGCN` to both the full gene set and the selected genes in `integrated_genes`. This is conveniently accomplished using the `run_SpaGCN` function provided by `LEGEND`:
+After feature selection with `LEGEND`, we can proceed to downstream analyses such as domain detection. Domain detection is crucial for understanding the spatial organization of gene expression within tissue. To demonstrate the power of `LEGEND` in facilitating domain detection, we compare the performance of the powerful [SpaGCN](https://doi.org/10.1038/s41592-021-01255-8) model on the full gene set versus and the subset of genes identified by `LEGEND`. To apply `SpaGCN`, first ensure it is installed on your system; for installation instructions, visit the [SpaGCN Tutorial](https://github.com/jianhuupenn/SpaGCN/blob/master/tutorial/tutorial.md#1-installation). Once installed, we can use the `run_SpaGCN` function available in `LEGEND` to conduct our analysis with ease:
 
 ```python
 # Run SpaGCN on the entire dataset
@@ -359,9 +359,6 @@ axes[2].legend(ncol=5, bbox_to_anchor=(0.5, -0.1), loc='upper center', frameon=F
 axes[2].set_title(axes[2].get_title() + f" ARI={np.round(ari(adata_st.obs.cluster, adata_st.obs.pred_selected), 2)}")
 ```
 
-<img src="spatial-clustering.png" width="100%">
+<img src="assets/img/spatial-clustering.png" width="100%">
 
 The above figure illustrates the spatial clustering results with each domain prediction visualized. The ARI (Adjusted Rand Index) scores indicate the performance of `SpaGCN`, which is observed to improve with the feature selection performed by `LEGEND`, even when hundreds of genes are selected.
-
-
-
