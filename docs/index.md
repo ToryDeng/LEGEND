@@ -87,7 +87,7 @@ import scanpy as sc
 import squidpy as sq
 import STAGATE_pyG
 ```
-In this tutorial, we utilize [STAGATE](https://doi.org/10.1038/s41467-022-29439-6) to denoise gene expressions from the SRT dataset. STAGATE is available in two versions: one based on TensorFlow, and another using the [PyG](https://pyg.org/) library. We will be using the PyG version, STAGATE_pyG. STAGATE_pyG is not included in `LEGEND`'s dependencies, so make sure to install it separately by the instructions in its [documentation](https://stagate.readthedocs.io/en/latest/Installation_pyG.html).
+In this tutorial, we utilize [STAGATE](https://doi.org/10.1038/s41467-022-29439-6) to denoise gene expressions from the SRT dataset. `STAGATE` is available in two versions: one based on TensorFlow, and another using the [PyG](https://pyg.org/) library. We will be using the PyG version, `STAGATE_pyG`. `STAGATE_pyG` is not included in `LEGEND`'s dependencies, so make sure to install it separately by the instructions in its [documentation](https://stagate.readthedocs.io/en/latest/Installation_pyG.html).
 
 ### Obtain the Datasets
 
@@ -149,7 +149,7 @@ args = {
 ```
 Let's elaborate on these parameters:
 
-- **version:** `LEGEND` provides two variants for gene clustering: `fast`` and `ps`. The `fast` version quickly clusters genes but doesn't assess gene relevance, redundancy, or complementarity. The `ps` version, recommended for multi-modality analysis, performs these comprehensive computations.
+- **version:** `LEGEND` provides two variants for gene clustering: `fast` and `ps`. The `fast` version quickly clusters genes but doesn't assess gene relevance, redundancy, or complementarity. The `ps` version, recommended for multi-modality analysis, performs these comprehensive computations.
 - **verbosity:** The verbosity level. `0` displays only warnings and errors. `1` also shows info messages. `2`, also shows debug messages.
 - **relevant_gene_pct:** The percentage of genes to include as relevant. Here we use a relatively small value.
 - **return_info:** Whether intermediate results are returned alongside the selected genes. Set to `True` for a more in-depth review of the clustering process.
@@ -163,7 +163,7 @@ info_rna, sc_genes = lg.GeneClust(
 ```
 
 `n_obs_clusters` is the number of clusters in cell/spots clustering. It is used in indentification of high-confidence cells/spots.
-For the scRNA-seq dataset, we specify `n_obs_clusters=23` which is equal to the true number of cell types. `modality="sc"` indicates the modality is scRNA-seq. `info_rna` is an `AnnData` object storing intermediate results, and `sc_genes` is a NumPy array comprising selected genes.
+For the scRNA-seq dataset, we specify `n_obs_clusters=23` which is equal to the true number of cell types. `modality="sc"` indicates the modality is scRNA-seq. `info_rna` is an `AnnData` object storing intermediate results, and `sc_genes` is a `NumPy` array comprising selected genes.
 
 During processing, a warning may appear:
 
@@ -171,7 +171,7 @@ During processing, a warning may appear:
 2023-12-21 22:56:16.462 | WARNING  | LEGEND._validation:check_raw_counts:71 - Will directly use the possible normalized counts found in `adata.X`.
 ```
 
-This indicates that `LEGEND` is working with a potentially normalized expression matrix. LEGEND prefers raw counts but can work on normalized counts. In the latter case it will raise this warning to alert the user to verify the data type being used in the analysis.
+This indicates that `LEGEND` is working with a potentially normalized expression matrix. `LEGEND` prefers raw counts but can work on normalized counts. In the latter case it will raise this warning to alert the user to verify the data type being used in the analysis.
 
 Inspecting the `info_rna` by executing `info_rna` in a Jupyter cell will reveal its structure:
 
@@ -221,7 +221,7 @@ AnnData object with n_obs × n_vars = 1616 × 1966
     varp: 'redundancy'
 ```
 
-By running LEGEND in this way, you efficiently process both scRNA-seq and SRT datasets to determine highly relevant and non-redundant genes, paving the way for the multimodal transcriptomic analysis. 
+By running `LEGEND` in this way, you efficiently process both scRNA-seq and SRT datasets to determine highly relevant and non-redundant genes, paving the way for the multimodal transcriptomic analysis. 
 
 
 #### Integration
