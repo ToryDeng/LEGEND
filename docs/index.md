@@ -9,7 +9,7 @@ toc: true
 
 <sup>§</sup> Equal contribution. <sup>\*</sup> Corresponding authors.
 
-**Maintainer:** Tao Deng
+**Maintainer:** [Tao Deng](https://torydeng.github.io/) (taodeng@link.cuhk.edu.cn)
 
 **Latest revision:** 22/12/2023
 
