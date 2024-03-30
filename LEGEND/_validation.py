@@ -99,13 +99,13 @@ def check_gene_clustering(
                 raise ValueError(f"Expected `n_gene_clusters` > 1, got {n_gene_clusters}.")
 
         if modality == 'st':
-            raise ValueError(f"GeneClust-fast does not support spatial transcriptomics. Please set `version == 'ps'`.")
+            raise ValueError("GeneClust-fast does not support spatial transcriptomics. Please set `version == 'ps'`.")
     else:
         if n_gene_clusters is not None:  # GeneClust-ps does not require `n_var_clusters` to be given
             raise TypeError(f"Expected `n_gene_clusters` to be None, got {type(n_gene_clusters)}.")
         if modality == 'st':
             if img is None:
-                warnings.warn("No available image. This could lower the accuracy of spaGCN.", category=RuntimeWarning)
+                warnings.warn("No available image. This could reduce the accuracy of spaGCN.", category=RuntimeWarning)
             elif not isinstance(img, np.ndarray):
                 raise TypeError(f"Expected `image` to be an ndarray, got {type(img)}.")
             else:
@@ -144,5 +144,3 @@ def check_all_genes_selected(adata: ad.AnnData, selected_genes: np.ndarray):
         msg = f"Found only {n_selected_genes} selected genes in `adata.var_names`, not {selected_genes.shape[0]}."
         raise RuntimeError(msg)
     logger.opt(colors=True).info(f"Selected <yellow>{n_selected_genes}</yellow> genes.")
-
-

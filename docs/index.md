@@ -86,6 +86,7 @@ import LEGEND as lg
 import scanpy as sc
 import squidpy as sq
 import STAGATE_pyG
+import cv2
 
 from sklearn.metrics import adjusted_rand_score as ari
 ```

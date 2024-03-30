@@ -42,6 +42,6 @@ setup(
         "torch>=1.13.1",
         "opencv-python>=4.6.0",
     ],
-    packages=find_packages(exclude=("tests", "figures", "data", "docs")),
+    packages=find_packages(exclude=("tests", "figures", "data", "docs", "simulation")),
     zip_safe=False,
 )
