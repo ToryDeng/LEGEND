@@ -4,7 +4,6 @@
 />
 
 # LEGEND: Identifying Co-expressed Genes in Multimodal Transcriptomic Sequencing Data
-
 We present a novel method called mu**L**timodal co-**E**xpressed **GEN**es fin**D**er (LEGEND) that performs integrated gene clustering on scRNA-seq and SRT data to identify co-expressed genes at both the cell type and tissue domain levels. LEGEND performs a hierarchical gene clustering with the aim of maximizing intra-cluster redundancy and inter-cluster complementarity.
 
 ![image](docs/assets/img/workflow.png)
