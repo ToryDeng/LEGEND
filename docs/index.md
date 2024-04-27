@@ -17,7 +17,7 @@ toc: true
 
 ## Introduction
 
-Exploring co-expressed genes is essential for revealing biologically co-functional genes. However, existing methods for this purpose rely solely on sc/snRNA-seq or spatially-resolved transcriptomic (SRT) data, leading to weaker co-functionality among identified genes. We present `LEGEND` (mu**L**timodal co-**E**xpressed **GE**nes fin**D**er), a novel method that performs integrated gene clustering on sc/snRNA-seq and SRT data for identifying genes co-expressed at both the cell type and tissue domain levels.
+Exploring co-expressed genes is essential for revealing biologically co-functional genes. However, existing methods for this purpose rely solely on sc/snRNA-seq or spatially-resolved transcriptomic (SRT) data, leading to weaker co-functionality among identified genes. We present `LEGEND` (mu**L**timodal co-**E**xpressed **GEN**es fin**D**er), a novel method that performs integrated gene clustering on sc/snRNA-seq and SRT data for identifying genes co-expressed at both the cell type and tissue domain levels.
 
 
 <img src="assets/img/workflow.png" width="100%">
@@ -49,7 +49,7 @@ git clone https://github.com/ToryDeng/LEGEND.git
 # Navigate to the LEGEND directory
 cd LEGEND/
 # Install the package using pip
-pip install dist/LEGEND-0.1.0-py3-none-any.whl  
+pip install dist/LEGEND-0.1.1-py3-none-any.whl  
 ```
 
 You can verify that `LEGEND` has been successfully installed by executing:
@@ -62,7 +62,7 @@ And if everything works fine, you will get output like:
 
 ```text
 Name: LEGEND
-Version: 0.1.0
+Version: 0.1.1
 Summary: An integrative algorithm for identifying co-expressed and cofunctional genes in multimodal transcriptomic sequencing data
 Home-page: https://github.com/ToryDeng/LEGEND
 Author: Tao Deng
