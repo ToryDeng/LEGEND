@@ -1,6 +1,11 @@
-# LEGEND: An integrative algorithm for identifying co-expressed and cofunctional genes in multimodal transcriptomic sequencing data
+<img
+  src="docs/assets/img/logo.png"
+  class="dark-light" align="right" width="70" alt="image"
+/>
 
-We present a novel method called mu**L**timodal co-**E**xpressed **GE**nes fin**D**er (LEGEND) that performs integrated gene clustering on scRNA-seq and SRT data to identify co-expressed genes at both the cell type and tissue domain levels. LEGEND performs a hierarchical gene clustering with the aim of maximizing intra-cluster redundancy and inter-cluster complementarity.
+# LEGEND: Identifying Co-expressed Genes in Multimodal Transcriptomic Sequencing Data
+
+We present a novel method called mu**L**timodal co-**E**xpressed **GEN**es fin**D**er (LEGEND) that performs integrated gene clustering on scRNA-seq and SRT data to identify co-expressed genes at both the cell type and tissue domain levels. LEGEND performs a hierarchical gene clustering with the aim of maximizing intra-cluster redundancy and inter-cluster complementarity.
 
 ![image](docs/assets/img/workflow.png)
 
@@ -28,7 +33,7 @@ You can download the package from GitHub and install it locally:
 ```shell
 git clone https://github.com/ToryDeng/LEGEND.git
 cd LEGEND/
-pip install dist/LEGEND-0.1.0-py3-none-any.whl
+pip install dist/LEGEND-0.1.1-py3-none-any.whl
 ```
 
 ## Getting started

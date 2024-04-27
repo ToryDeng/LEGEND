@@ -10,7 +10,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="LEGEND",
-    version="0.1.0",
+    version="0.1.1",
     description="An integrative algorithm for identifying co-expressed and cofunctional genes in "
     "multimodal transcriptomic sequencing data",
     long_description=LONG_DESCRIPTION,
