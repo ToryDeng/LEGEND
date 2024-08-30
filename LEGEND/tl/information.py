@@ -42,7 +42,7 @@ def find_relevant_genes(adata: ad.AnnData, top_pct: int, max_workers: int = os.c
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     top_pct : int
         The percentage of relevant genes. This parameter should be between 0 and 100.
@@ -85,7 +85,7 @@ def compute_gene_redundancy(adata: ad.AnnData, max_workers: int = os.cpu_count()
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     max_workers : int
         The maximum value of workers which can be used during feature selection.
@@ -123,7 +123,7 @@ def compute_gene_complementarity(adata: ad.AnnData, max_workers: int = os.cpu_co
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     max_workers : int
         The maximum value of workers which can be used during feature selection.

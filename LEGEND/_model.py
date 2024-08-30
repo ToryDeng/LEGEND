@@ -43,7 +43,7 @@ def GeneClust(
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
         We reconmmend to pass raw counts which are stored in `adata.X`. However, if `adata.X` doesn't contain raw counts,
         GeneClust will assume the data in `adata.X` have been normalized and directly use them.
@@ -80,9 +80,9 @@ def GeneClust(
         Path to the log file
     verbosity : Literal[0, 1, 2], default=1
         The verbosity level.
-        If 0, only prints warnings and errors.
-        If 1, prints info-level messages, warnings and errors.
-        If 2, prints debug-level messages, info-level messages, warnings and errors.
+        - If 0, only prints warnings and errors.
+        - If 1, prints info-level messages, warnings and errors.
+        - If 2, prints debug-level messages, info-level messages, warnings and errors.
     random_state : int, default=0
         Change to use different initial states for the optimization.
 
@@ -93,18 +93,18 @@ def GeneClust(
 
     copied_adata : AnnData
         Stores intermediate results generated during feature selection.
-        The normalized counts are stored in `copied_adata.layers['pearson_norm']`.
-        The cell-level principal components are stored in `copied_adata.varm['X_pca']`.
-        The gene cluster labels are in `copied_adata.var['cluster']`.
-        For GeneClust-fast, the closeness of genes to their cluster centers are in `copied_adata.var['closeness']`.
-        For GeneClust-ps, the gene-level principal components are in `copied_adata.obsm['X_pca']`.
-        The high-confidence cell cluster labels are in `copied_adata.obs['cluster']`.
+        - The normalized counts are stored in `copied_adata.layers['pearson_norm']`.
+        - The cell-level principal components are stored in `copied_adata.varm['X_pca']`.
+        - The gene cluster labels are in `copied_adata.var['cluster']`.
+        - For GeneClust-fast, the closeness of genes to their cluster centers are in `copied_adata.var['closeness']`.
+        - For GeneClust-ps, the gene-level principal components are in `copied_adata.obsm['X_pca']`.
+        - The high-confidence cell cluster labels are in `copied_adata.obs['cluster']`.
         Low-confidence cell clusters are filtered.
-        Genes relevance values are in `copied_adata.var['relevance']`. Irrelevant genes are filtered.
-        Gene redundancy values are in `copied_adata.varp['redundancy']`.
-        MST of relevant genes is in `copied_adata.uns['MST']`.
-        Gene outlier scores are in `copied_adata.var['outlier_score']`.
-        Representative genes are indicated by `copied_adata.var['representative']`.
+        - Genes relevance values are in `copied_adata.var['relevance']`. Irrelevant genes are filtered.
+        - Gene redundancy values are in `copied_adata.varp['redundancy']`.
+        - MST of relevant genes is in `copied_adata.uns['MST']`.
+        - Gene outlier scores are in `copied_adata.var['outlier_score']`.
+        - Representative genes are indicated by `copied_adata.var['representative']`.
     selected_genes : ndarray
         Names of selected genes.
 
@@ -168,16 +168,12 @@ def GeneClust(
         random_state,
     )
     # select features from gene clusters
-    selected_genes = tl.select_from_clusters(
-        copied_adata, version, modality, 20, post_hoc_filtering, random_state
-    )
+    selected_genes = tl.select_from_clusters(copied_adata, version, modality, 20, post_hoc_filtering, random_state)
     check_all_genes_selected(copied_adata, selected_genes)
 
     if subset:
         adata._inplace_subset_var(selected_genes)
-        logger.opt(colors=True).info(
-            f"<magenta>GeneClust-{version}</magenta> finished."
-        )
+        logger.opt(colors=True).info(f"<magenta>GeneClust-{version}</magenta> finished.")
         return None
 
     logger.opt(colors=True).info(f"<magenta>GeneClust-{version}</magenta> finished.")
@@ -223,9 +219,9 @@ def integrate(
         Path to the log file
     verbosity : Literal[0, 1, 2], default=1
         The verbosity level.
-        If 0, only prints warnings and errors.
-        If 1, prints info-level messages, warnings and errors.
-        If 2, prints debug-level messages, info-level messages, warnings and errors.
+        - If 0, only prints warnings and errors.
+        - If 1, prints info-level messages, warnings and errors.
+        - If 2, prints debug-level messages, info-level messages, warnings and errors.
     random_state : int, default=0
         Change to use different initial states for the optimization.
 
@@ -246,31 +242,17 @@ def integrate(
     adata_rna = adata_rna[:, common_genes].copy()
     adata_st = adata_st[:, common_genes].copy()
 
-    pseudo_adata = ad.AnnData(np.zeros((1, common_genes.shape[0])), dtype=float)
+    pseudo_adata = ad.AnnData(np.zeros((1, common_genes.shape[0])))
     pseudo_adata.var_names = common_genes
 
-    comb_redundancy = (
-        rna_weight * adata_rna.varp["redundancy"]
-        + (1 - rna_weight) * adata_st.varp["redundancy"]
-    )
-    comb_relevance = (
-        rna_weight * adata_rna.var["relevance"]
-        + (1 - rna_weight) * adata_st.var["relevance"]
-    )
+    comb_redundancy = rna_weight * adata_rna.varp["redundancy"] + (1 - rna_weight) * adata_st.varp["redundancy"]
+    comb_relevance = rna_weight * adata_rna.var["relevance"] + (1 - rna_weight) * adata_st.var["relevance"]
     comb_MST = tl.information.build_MST(-comb_redundancy)
     adata_st.uns["MST"], adata_rna.uns["MST"] = comb_MST, comb_MST
-    logger.opt(colors=True).info(
-        f"Start to compute complementarity on <magenta>SRT</magenta> data..."
-    )
-    st_complm = tl.information.compute_gene_complementarity(
-        adata_st, max_workers, random_state
-    )
-    logger.opt(colors=True).info(
-        f"Start to compute complementarity on <magenta>scRNA-seq</magenta> data..."
-    )
-    rna_complm = tl.information.compute_gene_complementarity(
-        adata_rna, max_workers, random_state
-    )
+    logger.opt(colors=True).info("Start to compute complementarity on <magenta>SRT</magenta> data...")
+    st_complm = tl.information.compute_gene_complementarity(adata_st, max_workers, random_state)
+    logger.opt(colors=True).info("Start to compute complementarity on <magenta>scRNA-seq</magenta> data...")
+    rna_complm = tl.information.compute_gene_complementarity(adata_rna, max_workers, random_state)
     comb_MST.es["complm"] = rna_weight * st_complm + (1 - rna_weight) * rna_complm
 
     pseudo_adata.uns["MST"] = comb_MST
@@ -279,9 +261,7 @@ def integrate(
     pseudo_adata.var["relevance_st"] = adata_st.var["relevance"]
 
     tl.cluster.generate_gene_clusters(pseudo_adata)
-    selected_genes = tl.select_from_clusters(
-        pseudo_adata, "ps", "st", rel_pct, post_hoc_filtering, random_state
-    )
+    selected_genes = tl.select_from_clusters(pseudo_adata, "ps", "st", rel_pct, post_hoc_filtering, random_state)
     check_all_genes_selected(pseudo_adata, selected_genes)
 
     if return_info:

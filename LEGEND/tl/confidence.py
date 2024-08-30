@@ -41,7 +41,7 @@ def find_high_confidence_cells(
     Parameters
     ----------
     adata
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     n_cell_clusters
         The number of clusters in cell clustering used to find high-confidence cells. Only valid in GeneClust-ps.
