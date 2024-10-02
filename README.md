@@ -9,10 +9,6 @@ We present a novel method called mu**L**timodal co-**E**xpressed **GEN**es fin**
 
 ![image](docs/assets/img/workflow.png)
 
-> [!WARNING]  
-> This project is no longer actively maintained by me. The LEGEND project has been taken over by [MengqianHuang](https://github.com/MengqianHuang) and is now being developed under a new name: **MIXER**. You can find the new repository for MIXER at the following link:
-[https://github.com/MengqianHuang/MIXER](https://github.com/MengqianHuang/MIXER).
-
 
 ## Dependencies
 - anndata>=0.8.0
