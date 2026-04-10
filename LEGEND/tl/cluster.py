@@ -9,29 +9,39 @@ from typing import Literal
 import anndata as ad
 import numpy as np
 from hdbscan._hdbscan_linkage import label
-from hdbscan._hdbscan_tree import condense_tree, compute_stability, get_clusters, outlier_scores
+from hdbscan._hdbscan_tree import (
+    compute_stability,
+    condense_tree,
+    get_clusters,
+    outlier_scores,
+)
 from loguru import logger
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics.pairwise import paired_distances
 from sklearn.preprocessing import minmax_scale
 
 from .confidence import find_high_confidence_cells, find_high_confidence_spots
-from .information import find_relevant_genes, compute_gene_redundancy, build_MST, compute_gene_complementarity
+from .information import (
+    build_MST,
+    compute_gene_complementarity,
+    compute_gene_redundancy,
+    find_relevant_genes,
+)
 
 
 def cluster_genes(
-        adata: ad.AnnData,
-        img: np.ndarray,
-        version: Literal['fast', 'ps'],
-        modality: Literal['sc', 'st'] = 'sc',
-        shape: Literal['hexagon', 'square'] = 'hexagon',
-        alpha: float = 0.3,
-        n_gene_clusters: int = None,
-        n_obs_clusters: int = None,
-        n_components: int = 10,
-        relevant_gene_pct: int = 20,
-        max_workers: int = os.cpu_count() - 1,
-        random_state: int = 0
+    adata: ad.AnnData,
+    img: np.ndarray,
+    version: Literal["fast", "ps"],
+    modality: Literal["sc", "st"] = "sc",
+    shape: Literal["hexagon", "square"] = "hexagon",
+    alpha: float = 0.3,
+    n_gene_clusters: int = None,
+    n_obs_clusters: int = None,
+    n_components: int = 10,
+    relevant_gene_pct: int = 20,
+    max_workers: int = os.cpu_count() - 1,
+    random_state: int = 0,
 ):
     """
     Cluster genes using mini-batch k-means (GeneClust-fast) or an graph-based algorithm (GeneClust-ps).
@@ -39,7 +49,7 @@ def cluster_genes(
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     img : ndarray
         The image of tissue section.
@@ -65,22 +75,24 @@ def cluster_genes(
         Change to use different initial states for the optimization.
     """
     logger.info("Clustering genes...")
-    if version == 'fast':
+    if version == "fast":
         km = MiniBatchKMeans(
-            n_clusters=n_gene_clusters, batch_size=max(1024, adata.n_vars // 10), random_state=random_state,
-            n_init='auto'
+            n_clusters=n_gene_clusters,
+            batch_size=max(1024, adata.n_vars // 10),
+            random_state=random_state,
+            n_init="auto",
         )
-        adata.var['cluster'] = km.fit_predict(adata.varm['X_pca'])
-        adata.var['closeness'] = compute_gene_closeness(adata, km.cluster_centers_)
+        adata.var["cluster"] = km.fit_predict(adata.varm["X_pca"])
+        adata.var["closeness"] = compute_gene_closeness(adata, km.cluster_centers_)
     else:
-        if modality == 'sc':
+        if modality == "sc":
             find_high_confidence_cells(adata, n_obs_clusters, n_components, max_workers, random_state)
         else:
             find_high_confidence_spots(adata, img, n_obs_clusters, shape, alpha=alpha, random_state=random_state)
         find_relevant_genes(adata, relevant_gene_pct, max_workers, random_state)
         compute_gene_redundancy(adata, max_workers, random_state)
-        adata.uns['MST'] = build_MST(-adata.varp['redundancy'])
-        adata.uns['MST'].es['complm'] = compute_gene_complementarity(adata, max_workers, random_state)
+        adata.uns["MST"] = build_MST(-adata.varp["redundancy"])
+        adata.uns["MST"].es["complm"] = compute_gene_complementarity(adata, max_workers, random_state)
         generate_gene_clusters(adata)
     logger.info("Gene clustering done!")
 
@@ -93,18 +105,18 @@ def compute_gene_closeness(adata: ad.AnnData, centers: np.ndarray) -> np.ndarray
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     centers : ndarray
-        Cluster centers of shape `n_var_clusters` × `n_components`.
+        Cluster centers of shape (n_var_clusters, n_components).
     Returns
     -------
     all_distances : ndarray
         distances of all genes to their cluster centers.
     """
-    all_distances = paired_distances(adata.varm['X_pca'], centers[adata.var['cluster']])
-    for gene_cluster in np.unique(adata.var['cluster']):
-        gene_cluster_mask = adata.var['cluster'] == gene_cluster
+    all_distances = paired_distances(adata.varm["X_pca"], centers[adata.var["cluster"]])
+    for gene_cluster in np.unique(adata.var["cluster"]):
+        gene_cluster_mask = adata.var["cluster"] == gene_cluster
         all_distances[gene_cluster_mask] = 1 - minmax_scale(all_distances[gene_cluster_mask])
     return all_distances
 
@@ -117,21 +129,21 @@ def generate_gene_clusters(adata: ad.AnnData):
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     """
-    mst_edges = adata.uns['MST'].get_edge_dataframe()[['source', 'target']].values
+    mst_edges = adata.uns["MST"].get_edge_dataframe()[["source", "target"]].values
     g1_idx, g2_idx = mst_edges[:, 0], mst_edges[:, 1]
-    per_gene_relevance = adata.var['relevance'].values
-    adata.uns['MST'].es['min_relevance'] = np.minimum(per_gene_relevance[g1_idx], per_gene_relevance[g2_idx])
-    edge_redundancy = -np.array(adata.uns['MST'].es['neg_redundancy'])
-    edge_scales = np.maximum(adata.uns['MST'].es['min_relevance'], adata.uns['MST'].es['complm']) / edge_redundancy
-    adata.uns['MST'].es['scale'] = edge_scales
+    per_gene_relevance = adata.var["relevance"].values
+    adata.uns["MST"].es["min_relevance"] = np.minimum(per_gene_relevance[g1_idx], per_gene_relevance[g2_idx])
+    edge_redundancy = -np.array(adata.uns["MST"].es["neg_redundancy"])
+    edge_scales = np.maximum(adata.uns["MST"].es["min_relevance"], adata.uns["MST"].es["complm"]) / edge_redundancy
+    adata.uns["MST"].es["scale"] = edge_scales
 
     MST = np.hstack((mst_edges, edge_scales.reshape(-1, 1)))
     MST = MST[np.argsort(MST.T[2]), :]
     single_linkage_tree = label(MST)
     condensed_tree = condense_tree(single_linkage_tree, 5)
     stability_dict = compute_stability(condensed_tree)
-    labels, probabilities, stabilities = get_clusters(condensed_tree, stability_dict, "eom", False, False, 1., 0)
-    adata.var['outlier_score'], adata.var['cluster'] = outlier_scores(condensed_tree), labels
+    labels, probabilities, stabilities = get_clusters(condensed_tree, stability_dict, "eom", False, False, 1.0, 0)
+    adata.var["outlier_score"], adata.var["cluster"] = outlier_scores(condensed_tree), labels

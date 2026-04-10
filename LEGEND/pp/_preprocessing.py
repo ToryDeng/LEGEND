@@ -12,7 +12,7 @@ from loguru import logger
 from scipy.sparse import issparse
 
 
-def normalize(adata: ad.AnnData, modality: Literal['sc', 'st']):
+def normalize(adata: ad.AnnData, modality: Literal["sc", "st"]):
     """
     Normalize raw counts in `adata.X` using pearson residuals.
     `adata.X` is updated with the normalized counts.
@@ -20,15 +20,15 @@ def normalize(adata: ad.AnnData, modality: Literal['sc', 'st']):
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     modality : Literal['sc', 'st'], default='sc'
         Type of the dataset. 'sc' for scRNA-seq data, 'st' for spatially resolved transcriptomics (SRT) data.
     """
     logger.info("Preprocessing data...")
-    if 'log1p' in adata.uns:
-        del adata.uns['log1p']  # prevent warning from scanpy
-    if modality == 'sc':
+    if "log1p" in adata.uns:
+        del adata.uns["log1p"]  # prevent warning from scanpy
+    if modality == "sc":
         adata.X = adata.X.A if issparse(adata.X) else adata.X
         sc.experimental.pp.normalize_pearson_residuals(adata)
     else:
@@ -36,7 +36,7 @@ def normalize(adata: ad.AnnData, modality: Literal['sc', 'st']):
         sc.pp.log1p(adata)
 
 
-def reduce_dim(adata: ad.AnnData, version: Literal['fast', 'ps'], random_state: int = 0):
+def reduce_dim(adata: ad.AnnData, version: Literal["fast", "ps"], random_state: int = 0):
     """
     Reduce gene-level dimension (in GeneClust-ps) or cell-level dimension (in GeneClust-fast) of data.
     The cell-level principal components are stored in `adata.varm['X_pca']`.
@@ -45,7 +45,7 @@ def reduce_dim(adata: ad.AnnData, version: Literal['fast', 'ps'], random_state: 
     Parameters
     ----------
     adata : AnnData
-        The annotated data matrix of shape `n_obs` × `n_vars`.
+        The annotated data matrix of shape (n_obs, n_vars).
         Rows correspond to cells and columns to genes.
     version : Literal['fast', 'ps']
         The version of GeneClust to be used.
@@ -53,7 +53,7 @@ def reduce_dim(adata: ad.AnnData, version: Literal['fast', 'ps'], random_state: 
         Change to use different initial states for the optimization.
     """
     norm_counts = np.asanyarray(adata.X)
-    adata.varm['X_pca'] = sc.pp.pca(norm_counts.T, svd_solver='auto', random_state=random_state)
-    if version == 'ps':
-        adata.obsm['X_pca'] = sc.pp.pca(norm_counts, svd_solver='auto', random_state=random_state)
+    adata.varm["X_pca"] = sc.pp.pca(norm_counts.T, svd_solver="auto", random_state=random_state)
+    if version == "ps":
+        adata.obsm["X_pca"] = sc.pp.pca(norm_counts, svd_solver="auto", random_state=random_state)
     logger.info("Data preprocessing done.")
