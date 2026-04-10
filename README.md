@@ -69,4 +69,16 @@ For more details about how to call the functions, please refer to the [**Tutoria
 
 ## Citation
 
-Coming soon.
+```bibtex
+@article{deng2025LEGEND,
+  title = {{LEGEND}: Identifying Co-expressed Genes in Multimodal Transcriptomic Sequencing Data},
+  author = {Deng, Tao and Huang, Mengqian and Xu, Kaichen and Lu, Yan and Xu, Yucheng and Chen, Siyu and Xie, Nina and Tao, Qiuyue and Wu, Hao and Sun, Xiaobo},
+  year = {2025},
+  month = sep,
+  journal = {Genomics, Proteomics \& Bioinformatics},
+  volume = {23},
+  number = {4},
+  pages = {qzaf056},
+  doi = {10.1093/gpbjnl/qzaf056},
+}
+```
